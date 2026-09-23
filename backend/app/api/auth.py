@@ -35,6 +35,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> TokenRe
         username=payload.username,
         password_hash=hash_password(payload.password),
         is_demo=payload.is_demo,
+        account_type=payload.account_type if payload.account_type in ("teacher", "student") else "teacher",
     )
     db.add(user)
     db.flush()  # populate user.id

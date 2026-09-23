@@ -1,0 +1,2 @@
+﻿PID=31176 CMD="c:\Users\Administrator\Desktop\aicoding\backend\.venv\Scripts\python.exe" -m app.worker.main
+PID=39960 CMD="c:\Users\Administrator\Desktop\aicoding\backend\.venv\Scripts\python.exe" -m app.worker.main

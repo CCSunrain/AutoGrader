@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.db import get_db
 from app.core.deps import AuthContext, get_auth_context
 from app.core.roles import Role
-from app.models import Assignment, ParsedDocument, Review, Submission, SubmissionVersion
+from app.models import Assignment, ParsedDocument, Review, Submission, SubmissionVersion, User
 from app.schemas.submission import ParsedDocumentOut, SubmissionOut, VersionCompareOut, VersionSummary
 from app.services import storage
 from app.services.tasks import enqueue
@@ -35,6 +35,18 @@ def _load_submission(db: Session, submission_id: str, workspace_id: str) -> Subm
     if submission is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "提交不存在")
     return submission
+
+
+def _fill_student_names(db: Session, submissions: list[Submission]) -> None:
+    """Fill each submission's `student_name` from the User table (fallback to student_id)."""
+    ids = list({s.student_id for s in submissions if s.student_id})
+    if not ids:
+        return
+    name_map = {
+        uid: uname for uid, uname in db.query(User.id, User.username).filter(User.id.in_(ids)).all()
+    }
+    for s in submissions:
+        s.student_name = name_map.get(s.student_id) or s.student_id
 
 
 @router.post(
@@ -129,7 +141,9 @@ def upload_submission(
         payload={"submission_version_id": version.id, "parsed_document_id": parsed.id},
     )
 
-    return _load_submission(db, submission.id, ctx.workspace_id)
+    result = _load_submission(db, submission.id, ctx.workspace_id)
+    _fill_student_names(db, [result])
+    return result
 
 
 @router.get("/assignments/{assignment_id}/submissions", response_model=list[SubmissionOut])
@@ -138,16 +152,20 @@ def list_submissions(
     ctx: AuthContext = Depends(get_auth_context),
     db: Session = Depends(get_db),
 ):
-    return (
+    query = (
         db.query(Submission)
         .options(selectinload(Submission.versions))
         .filter(
             Submission.assignment_id == assignment_id,
             Submission.workspace_id == ctx.workspace_id,
         )
-        .order_by(Submission.created_at.desc())
-        .all()
     )
+    # 学生只能看到本人的提交
+    if ctx.role == Role.STUDENT:
+        query = query.filter(Submission.student_id == ctx.user.id)
+    submissions = query.order_by(Submission.created_at.desc()).all()
+    _fill_student_names(db, submissions)
+    return submissions
 
 
 @router.get("/submissions/{submission_id}", response_model=SubmissionOut)
@@ -160,6 +178,7 @@ def get_submission(
     # 学生只能看本人的提交
     if ctx.role == Role.STUDENT and submission.student_id != ctx.user.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "无权查看他人提交")
+    _fill_student_names(db, [submission])
     return submission
 
 

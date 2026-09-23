@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, setToken } from "../api/client";
+import { api, setToken, setWorkspaceId } from "../api/client";
 import type { TokenResponse } from "../api/types";
 
 export default function Login() {
@@ -9,6 +9,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [accountType, setAccountType] = useState<"teacher" | "student">("teacher");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -18,9 +19,10 @@ export default function Login() {
     try {
       const resp =
         mode === "login"
-          ? await api.post<TokenResponse>("/auth/login", { email, password })
-          : await api.post<TokenResponse>("/auth/register", { email, username, password });
+          ? await api.post<TokenResponse>("/auth/login", { email, password }, true)
+          : await api.post<TokenResponse>("/auth/register", { email, username, password, account_type: accountType }, true);
       setToken(resp.access_token);
+      setWorkspaceId(null);
       navigate("/");
     } catch (e) {
       setError((e as Error).message);
@@ -51,15 +53,28 @@ export default function Login() {
         )}
 
         {mode === "register" && (
-          <div className="field">
-            <label>姓名</label>
-            <input
-              className="input"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="教师 / 学生姓名"
-            />
-          </div>
+          <>
+            <div className="field">
+              <label>姓名</label>
+              <input
+                className="input"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="教师 / 学生姓名"
+              />
+            </div>
+            <div className="field">
+              <label>身份</label>
+              <div className="band-pick">
+                <button type="button" className={accountType === "teacher" ? "selected" : ""} onClick={() => setAccountType("teacher")}>
+                  我是教师
+                </button>
+                <button type="button" className={accountType === "student" ? "selected" : ""} onClick={() => setAccountType("student")}>
+                  我是学生
+                </button>
+              </div>
+            </div>
+          </>
         )}
         <div className="field">
           <label>邮箱</label>

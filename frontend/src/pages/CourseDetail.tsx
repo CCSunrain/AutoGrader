@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
-import type { Assignment, AssignmentStats, Course, Review, Rubric, Submission } from "../api/types";
+import type { Assignment, AssignmentStats, Course, Me, Review, Rubric, Submission } from "../api/types";
+import RubricEditor, { type RubricDraft } from "../components/RubricEditor";
 
 const SORTING_TEMPLATE = {
   title: "排序算法实验评分量表",
@@ -97,6 +98,45 @@ export default function CourseDetail() {
   const [tab, setTab] = useState<"assignments" | "rubrics">("assignments");
   const [showCreateAssignment, setShowCreateAssignment] = useState(false);
   const [assignmentForm, setAssignmentForm] = useState({ title: "", description: "" });
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingDraft, setEditingDraft] = useState<RubricDraft | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const jsonInputRef = useRef<HTMLInputElement>(null);
+
+  function handleJsonImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const obj = JSON.parse(reader.result as string);
+        if (obj.title && Array.isArray(obj.items)) {
+          openEditor({
+            title: obj.title,
+            description: obj.description ?? "",
+            items: obj.items.map((it: { name: string; description?: string; max_score?: number; bands?: Array<{ level: string; score?: number }> }) => ({
+              name: it.name,
+              description: it.description ?? "",
+              max_score: it.max_score ?? 0,
+              bands: (it.bands ?? []).map((b) => ({ level: b.level, score: b.score ?? 0 })),
+            })),
+          });
+        } else {
+          alert("JSON 格式不正确，需包含 title 与 items 字段");
+        }
+      } catch {
+        alert("JSON 解析失败");
+      }
+    };
+    reader.readAsText(f);
+    e.target.value = "";
+  }
+
+  const { data: me } = useQuery<Me>({
+    queryKey: ["me"],
+    queryFn: () => api.get<Me>("/auth/me"),
+  });
+  const isTeacher = me?.account_type !== "student";
 
   const { data: course } = useQuery<Course>({
     queryKey: ["course", courseId],
@@ -123,10 +163,60 @@ export default function CourseDetail() {
     },
   });
 
-  const createRubric = useMutation({
-    mutationFn: (body: unknown) => api.post<Rubric>("/rubrics", body),
+  const saveRubric = useMutation({
+    mutationFn: (arg: { id: string | null; draft: RubricDraft }) =>
+      arg.id ? api.put<Rubric>(`/rubrics/${arg.id}`, arg.draft) : api.post<Rubric>("/rubrics", arg.draft),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rubrics"] });
+      setEditorOpen(false);
+      setEditingDraft(null);
+      setEditingId(null);
+    },
+  });
+
+  const deleteRubric = useMutation({
+    mutationFn: (id: string) => api.del<void>(`/rubrics/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["rubrics"] }),
   });
+
+  function handleDeleteRubric(r: Rubric) {
+    if (window.confirm(`确认删除量表「${r.title}」？`)) {
+      deleteRubric.mutate(r.id);
+    }
+  }
+
+  function openEditor(draft?: RubricDraft, id?: string) {
+    setEditingDraft(draft ?? null);
+    setEditingId(id ?? null);
+    setEditorOpen(true);
+  }
+
+  function toDraft(rubric: Rubric): RubricDraft {
+    const v = rubric.versions[rubric.versions.length - 1];
+    return {
+      title: rubric.title,
+      description: rubric.description,
+      items: (v?.items ?? []).map((it) => ({
+        name: it.name,
+        description: it.description,
+        max_score: it.max_score,
+        bands: it.bands.map((b) => ({ level: b.level, score: b.score })),
+      })),
+    };
+  }
+
+  function templateToDraft(t: { title: string; description: string; items: Array<{ name: string; description: string; max_score: number; bands: Array<{ level: string; score: number }> }> }): RubricDraft {
+    return {
+      title: t.title,
+      description: t.description,
+      items: t.items.map((it) => ({
+        name: it.name,
+        description: it.description,
+        max_score: it.max_score,
+        bands: it.bands.map((b) => ({ level: b.level, score: b.score })),
+      })),
+    };
+  }
 
   return (
     <div className="container">
@@ -147,21 +237,25 @@ export default function CourseDetail() {
           <button className={tab === "assignments" ? "btn primary" : "btn"} onClick={() => setTab("assignments")}>
             作业
           </button>
-          <button className={tab === "rubrics" ? "btn primary" : "btn"} onClick={() => setTab("rubrics")}>
-            评分量表
-          </button>
+          {isTeacher && (
+            <button className={tab === "rubrics" ? "btn primary" : "btn"} onClick={() => setTab("rubrics")}>
+              评分量表
+            </button>
+          )}
         </div>
       </div>
 
       {tab === "assignments" ? (
         <div>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
-            <button className="btn" onClick={() => setShowCreateAssignment((v) => !v)}>
-              {showCreateAssignment ? "收起" : "新建作业"}
-            </button>
-          </div>
+          {isTeacher && (
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
+              <button className="btn" onClick={() => setShowCreateAssignment((v) => !v)}>
+                {showCreateAssignment ? "收起" : "新建作业"}
+              </button>
+            </div>
+          )}
 
-          {showCreateAssignment && (
+          {isTeacher && showCreateAssignment && (
             <div className="card rise" style={{ padding: 20, marginBottom: 16 }}>
               <div className="field">
                 <label>作业标题</label>
@@ -197,7 +291,7 @@ export default function CourseDetail() {
           ) : (
             <div className="card-list">
               {assignments.map((a) => (
-                <AssignmentCard key={a.id} assignment={a} rubrics={rubrics ?? []} onNavigate={navigate} />
+                <AssignmentCard key={a.id} assignment={a} rubrics={rubrics ?? []} onNavigate={navigate} isTeacher={isTeacher} />
               ))}
             </div>
           )}
@@ -205,31 +299,59 @@ export default function CourseDetail() {
       ) : (
         <div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 14 }}>
-            <button className="btn" onClick={() => createRubric.mutate(SHORTEST_PATH_TEMPLATE)} disabled={createRubric.isPending}>
-              + 最短路径量表
+            <button className="btn primary" onClick={() => openEditor()}>
+              + 新建量表
             </button>
-            <button className="btn primary" onClick={() => createRubric.mutate(SORTING_TEMPLATE)} disabled={createRubric.isPending}>
-              + 排序实验量表
+            <button className="btn" onClick={() => openEditor(templateToDraft(SORTING_TEMPLATE))}>
+              排序模板
+            </button>
+            <button className="btn" onClick={() => openEditor(templateToDraft(SHORTEST_PATH_TEMPLATE))}>
+              最短路径模板
+            </button>
+            <input type="file" accept=".json" ref={jsonInputRef} style={{ display: "none" }} onChange={handleJsonImport} />
+            <button className="btn" onClick={() => jsonInputRef.current?.click()}>
+              导入 JSON
             </button>
           </div>
           {!rubrics?.length ? (
-            <div className="empty">还没有量表，点击上方按钮从模板创建</div>
+            <div className="empty">还没有量表，点击「新建量表」或从模板开始</div>
           ) : (
             <div className="card-list">
-              {rubrics.map((r) => (
-                <div key={r.id} className="card-row">
-                  <div className="grow">
-                    <div className="card-title">{r.title}</div>
-                    <div className="card-meta">
-                      版本 {r.versions.length} · {r.versions[0]?.items.length ?? 0} 个评分项
-                      {r.versions[0]?.frozen_at ? " · 已冻结" : ""}
+              {rubrics.map((r) => {
+                const latest = r.versions[r.versions.length - 1];
+                return (
+                  <div key={r.id} className="card-row">
+                    <div className="grow">
+                      <div className="card-title">{r.title}</div>
+                      <div className="card-meta">
+                        版本 {r.versions.length} · {latest?.items.length ?? 0} 个评分项
+                        {latest?.frozen_at ? " · 已冻结" : ""}
+                      </div>
                     </div>
+                    <button className="btn sm" onClick={() => openEditor(toDraft(r), r.id)}>
+                      编辑
+                    </button>
+                    <button className="btn sm danger" onClick={() => handleDeleteRubric(r)} disabled={deleteRubric.isPending}>
+                      删除
+                    </button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
+      )}
+
+      {editorOpen && (
+        <RubricEditor
+          initial={editingDraft ?? undefined}
+          onSave={(draft) => saveRubric.mutate({ id: editingId, draft })}
+          onClose={() => {
+            setEditorOpen(false);
+            setEditingDraft(null);
+            setEditingId(null);
+          }}
+        />
       )}
     </div>
   );
@@ -239,10 +361,12 @@ function AssignmentCard({
   assignment,
   rubrics,
   onNavigate,
+  isTeacher,
 }: {
   assignment: Assignment;
   rubrics: Rubric[];
   onNavigate: (path: string) => void;
+  isTeacher: boolean;
 }) {
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState(false);
@@ -251,15 +375,53 @@ function AssignmentCard({
   const [rubricVersionId, setRubricVersionId] = useState(rubrics[0]?.versions[0]?.id ?? "");
   const fileRef = { current: null as HTMLInputElement | null };
 
+  // 量表异步加载后同步默认选中项（否则「发起评阅」会因 rubricVersionId 为空而无法点击）
+  useEffect(() => {
+    if (!rubricVersionId && rubrics[0]?.versions[0]?.id) {
+      setRubricVersionId(rubrics[0].versions[0].id);
+    }
+  }, [rubrics, rubricVersionId]);
+
+  const deleteAssignment = useMutation({
+    mutationFn: () => api.del<void>(`/assignments/${assignment.id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["assignments"] });
+    },
+  });
+
+  const editAssignment = useMutation({
+    mutationFn: (body: { title: string; description: string }) =>
+      api.patch<Assignment>(`/assignments/${assignment.id}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["assignments"] }),
+  });
+
+  function handleEdit() {
+    const title = window.prompt("作业标题", assignment.title);
+    if (title === null) return;
+    const description = window.prompt("作业说明", assignment.description);
+    editAssignment.mutate({ title, description: description ?? assignment.description });
+  }
+
+  function handleDelete() {
+    if (window.confirm(`确认删除作业「${assignment.title}」？相关提交与评阅也会一并删除。`)) {
+      deleteAssignment.mutate();
+    }
+  }
+
   const { data: submissions } = useQuery<Submission[]>({
     queryKey: ["submissions", assignment.id],
     queryFn: () => api.get<Submission[]>(`/assignments/${assignment.id}/submissions`),
     enabled: expanded,
+    refetchInterval: expanded ? 3000 : false,
   });
 
   const upload = useMutation({
     mutationFn: (file: File) =>
-      api.upload<Submission>(`/assignments/${assignment.id}/submissions`, file, { student_id: studentId }),
+      api.upload<Submission>(
+        `/assignments/${assignment.id}/submissions`,
+        file,
+        isTeacher ? { student_id: studentId } : {}
+      ),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["submissions", assignment.id] }),
   });
 
@@ -270,11 +432,17 @@ function AssignmentCard({
           <div className="card-title">{assignment.title}</div>
           <div className="card-meta">{assignment.description}</div>
         </div>
-        <button className="btn sm" onClick={() => setShowStats((v) => !v)}>
-          {showStats ? "隐藏统计" : "统计"}
-        </button>
+        {isTeacher && (
+          <>
+            <button className="btn sm" onClick={() => setShowStats((v) => !v)}>
+              {showStats ? "隐藏统计" : "统计"}
+            </button>
+            <button className="btn sm" onClick={handleEdit}>编辑</button>
+            <button className="btn sm danger" onClick={handleDelete} disabled={deleteAssignment.isPending}>删除</button>
+          </>
+        )}
         <button className="btn sm" onClick={() => setExpanded((v) => !v)}>
-          {expanded ? "收起" : "管理提交"}
+          {expanded ? "收起" : isTeacher ? "管理提交" : "我的提交"}
         </button>
       </div>
 
@@ -283,13 +451,15 @@ function AssignmentCard({
       {expanded && (
         <div style={{ width: "100%", borderTop: "1px solid var(--line)", paddingTop: 12 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
-            <input
-              className="input"
-              style={{ width: 140 }}
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-              placeholder="学生 ID"
-            />
+            {isTeacher && (
+              <input
+                className="input"
+                style={{ width: 140 }}
+                value={studentId}
+                onChange={(e) => setStudentId(e.target.value)}
+                placeholder="学生 ID"
+              />
+            )}
             <input
               type="file"
               accept=".pdf,.md,.markdown"
@@ -315,7 +485,7 @@ function AssignmentCard({
                 const latest = s.versions[s.versions.length - 1];
                 return (
                   <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
-                    <span className="mono faint">{s.student_id}</span>
+                    <span className="mono faint">{s.student_name || s.student_id}</span>
                     <span>v{latest.version_no}</span>
                     <span className="faint">{latest.filename}</span>
                     <span className="grow" />
@@ -330,31 +500,35 @@ function AssignmentCard({
                         对比
                       </button>
                     )}
-                    <ReviewButton
-                      submission={s}
-                      rubricVersionId={rubricVersionId}
-                      onNavigate={onNavigate}
-                    />
+                    {isTeacher && (
+                      <ReviewButton
+                        submission={s}
+                        rubricVersionId={rubricVersionId}
+                        onNavigate={onNavigate}
+                      />
+                    )}
                   </div>
                 );
               })}
             </div>
           )}
 
-          <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center" }}>
-            <label className="faint" style={{ fontSize: 12 }}>
-              评阅量表：
-            </label>
-            <select className="select" style={{ width: 260 }} value={rubricVersionId} onChange={(e) => setRubricVersionId(e.target.value)}>
-              {rubrics.flatMap((r) =>
-                r.versions.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {r.title} v{v.version_no}
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
+          {isTeacher && (
+            <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center" }}>
+              <label className="faint" style={{ fontSize: 12 }}>
+                评阅量表：
+              </label>
+              <select className="select" style={{ width: 260 }} value={rubricVersionId} onChange={(e) => setRubricVersionId(e.target.value)}>
+                {rubrics.flatMap((r) =>
+                  r.versions.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {r.title} v{v.version_no}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -376,6 +550,7 @@ function ReviewButton({
   const { data: reviews } = useQuery<Review[]>({
     queryKey: ["reviews", version.id],
     queryFn: () => api.get<Review[]>(`/submission-versions/${version.id}/reviews`),
+    refetchInterval: 3000,
   });
 
   const startReview = useMutation({
@@ -385,6 +560,13 @@ function ReviewButton({
 
   const latest = reviews?.[0];
   if (latest) {
+    if (latest.status === "pending" || latest.status === "running") {
+      return (
+        <button className="btn sm" onClick={() => onNavigate(`/reviews/${latest.id}`)}>
+          评阅中…
+        </button>
+      );
+    }
     return (
       <button className="btn sm" onClick={() => onNavigate(`/reviews/${latest.id}`)}>
         评阅台{latest.status === "published" ? " · 已发布" : ""}

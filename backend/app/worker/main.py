@@ -103,8 +103,8 @@ def handle_run_review(payload: dict) -> dict:
         if review is None:
             raise ValueError(f"review not found: {review_id}")
 
-        # 幂等：已评阅完成则跳过（防止重复处理导致 ReviewItem 翻倍）
-        if review.status in ("done", "published"):
+        # 幂等：已评阅完成或已有评分项则跳过（防止重复处理导致 ReviewItem 翻倍）
+        if review.status in ("done", "published") or review.items:
             return {"status": "skipped", "review_id": review_id}
 
         rubric_version = (

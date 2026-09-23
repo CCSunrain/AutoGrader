@@ -11,6 +11,10 @@ class CourseCreate(BaseModel):
     description: str = ""
 
 
+class JoinRequest(BaseModel):
+    code: str = Field(min_length=1, max_length=16)
+
+
 class CourseUpdate(BaseModel):
     name: str | None = None
     code: str | None = None
@@ -22,10 +26,12 @@ class CourseOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    workspace_id: str = ""
     name: str
     code: str
     term: str
     description: str
+    join_code: str = ""
     created_at: datetime
 
 
@@ -34,6 +40,13 @@ class AssignmentCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     description: str = ""
     rubric_version_id: str | None = None
+
+
+class AssignmentUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    rubric_version_id: str | None = None
+    due_at: datetime | None = None
 
 
 class AssignmentOut(BaseModel):

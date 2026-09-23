@@ -15,6 +15,8 @@ class Course(UUIDMixin, TimestampMixin, TenantMixin, Base):
     code: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
     term: Mapped[str] = mapped_column(String(64), default="", nullable=False)
     description: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    # invite code students use to join this course
+    join_code: Mapped[str] = mapped_column(String(16), unique=True, index=True, nullable=False)
 
 
 class Assignment(UUIDMixin, TimestampMixin, TenantMixin, Base):

@@ -7,6 +7,7 @@ class RegisterRequest(BaseModel):
     username: str = Field(min_length=1, max_length=64)
     password: str = Field(min_length=8, max_length=128)
     is_demo: bool = False
+    account_type: str = "teacher"  # teacher | student
 
 
 class LoginRequest(BaseModel):
@@ -21,6 +22,7 @@ class UserOut(BaseModel):
     email: str
     username: str
     is_demo: bool
+    account_type: str = "teacher"
 
 
 class MembershipOut(BaseModel):
@@ -37,6 +39,7 @@ class MeOut(BaseModel):
     email: str
     username: str
     is_demo: bool
+    account_type: str = "teacher"
     memberships: list[MembershipOut] = []
 
 

@@ -15,6 +15,8 @@ class User(UUIDMixin, TimestampMixin, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     # demo persona flag -> gets an isolated, resettable workspace on register
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # account type drives the UI (teacher vs student), independent of workspace role
+    account_type: Mapped[str] = mapped_column(String(16), default="teacher", nullable=False)
 
     memberships: Mapped[list["Membership"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"

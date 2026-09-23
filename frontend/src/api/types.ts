@@ -3,6 +3,21 @@ export interface User {
   email: string;
   username: string;
   is_demo: boolean;
+  account_type: string;
+}
+
+export interface Membership {
+  workspace_id: string;
+  role: string;
+}
+
+export interface Me {
+  id: string;
+  email: string;
+  username: string;
+  is_demo: boolean;
+  account_type: string;
+  memberships: Membership[];
 }
 
 export interface TokenResponse {
@@ -13,10 +28,12 @@ export interface TokenResponse {
 
 export interface Course {
   id: string;
+  workspace_id: string;
   name: string;
   code: string;
   term: string;
   description: string;
+  join_code: string;
   created_at: string;
 }
 
@@ -75,6 +92,7 @@ export interface Submission {
   id: string;
   assignment_id: string;
   student_id: string;
+  student_name: string;
   status: string;
   created_at: string;
   versions: SubmissionVersion[];

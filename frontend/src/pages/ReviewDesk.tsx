@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { Evidence, ParsedDocument, Review, RubricVersion } from "../api/types";
 import HelpGuide from "../components/HelpGuide";
@@ -32,6 +32,7 @@ function highlight(text: string, evidences: Evidence[]) {
 
 export default function ReviewDesk() {
   const { reviewId } = useParams();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
@@ -76,6 +77,14 @@ export default function ReviewDesk() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["review", reviewId] }),
   });
 
+  const startRevision = useMutation({
+    mutationFn: () =>
+      api.post<Review>(`/submission-versions/${review!.submission_version_id}/reviews`, {
+        rubric_version_id: review!.rubric_version_id,
+      }),
+    onSuccess: (r) => navigate(`/reviews/${r.id}`),
+  });
+
   if (!review) return <div className="empty">加载中…</div>;
 
   const selected = review.items.find((i) => i.id === selectedId) ?? review.items[0];
@@ -116,6 +125,16 @@ export default function ReviewDesk() {
             disabled={busy || publish.isPending}
           >
             发布成绩
+          </button>
+        )}
+        {review.status === "published" && (
+          <button
+            className="btn sm"
+            style={{ background: "var(--amber)", borderColor: "var(--amber)", color: "#26221c" }}
+            onClick={() => startRevision.mutate()}
+            disabled={startRevision.isPending}
+          >
+            发起修订
           </button>
         )}
       </header>
@@ -165,6 +184,18 @@ export default function ReviewDesk() {
                   {item.decision ? `已定档` : "未复核"}
                   {item.needs_review ? " · 待复核" : ""}
                 </div>
+                {(item.review_flags ?? []).includes("model_conflict") && (
+                  <div style={{ fontSize: 12, color: "var(--red)", marginTop: 4 }}>
+                    ⚠ 模型两次判断不一致，建议人工确认
+                  </div>
+                )}
+                {(item.review_flags ?? [])
+                  .filter((f) => f.startsWith("contradiction:"))
+                  .map((f) => (
+                    <div key={f} style={{ fontSize: 12, color: "var(--red)", marginTop: 4 }}>
+                      ⚠ {f.slice("contradiction:".length)}
+                    </div>
+                  ))}
               </div>
             ))}
           </div>

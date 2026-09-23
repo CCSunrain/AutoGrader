@@ -22,6 +22,7 @@ class SubmissionOut(BaseModel):
     id: str
     assignment_id: str
     student_id: str
+    student_name: str = ""
     status: str
     created_at: datetime
     versions: list[SubmissionVersionOut] = []

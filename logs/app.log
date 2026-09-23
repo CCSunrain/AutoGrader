@@ -1,0 +1,35 @@
+2026-09-22 16:08:16 INFO    [autograder.api] AutoGrader API 启动，环境=development，LLM=mimo-v2.5
+2026-09-22 16:10:24 INFO    [autograder.api] AutoGrader API 启动，环境=development，LLM=mimo-v2.5
+2026-09-22 16:12:43 INFO    [autograder.api] AutoGrader API 启动，环境=development，LLM=mimo-v2.5
+2026-09-22 16:15:00 INFO    [autograder.api] AutoGrader API 启动，环境=development，LLM=mimo-v2.5
+2026-09-22 16:36:05 INFO    [autograder.api] AutoGrader API 启动，环境=development，LLM=mimo-v2.5
+2026-09-22 16:36:12 INFO    [autograder.api] AutoGrader API 启动，环境=development，LLM=mimo-v2.5
+2026-09-22 16:41:10 INFO    [autograder.api] AutoGrader API 启动，环境=development，LLM=mimo-v2.5
+2026-09-22 16:42:08 INFO    [autograder.api] AutoGrader API 启动，环境=development，LLM=mimo-v2.5
+2026-09-23 01:24:05 INFO    [autograder.api] AutoGrader API 启动，环境=development，LLM=mimo-v2.5
+2026-09-23 01:24:33 INFO    [autograder.api] AutoGrader API 启动，环境=development，LLM=mimo-v2.5
+2026-09-23 01:24:35 INFO    [autograder.worker] 解析完成 version=80466f2d-2d30-49d5-9e33-763fcfd1bf8c type=markdown blocks=7 chars=183
+2026-09-23 01:24:35 INFO    [autograder.worker] 开始评阅 review=052e7d89-a68e-438d-b990-5e46681f043f rubric_version=1ad8b6f7-c834-42f9-a135-6649ad04c429
+2026-09-23 01:25:06 INFO    [autograder.ai] LLM 调用 model=mimo-v2.5 耗时=31.44s tokens=1454
+2026-09-23 01:25:35 INFO    [autograder.ai] LLM 调用 model=mimo-v2.5 耗时=28.31s tokens=1273
+2026-09-23 01:26:24 INFO    [autograder.ai] LLM 调用 model=mimo-v2.5 耗时=49.76s tokens=2037
+2026-09-23 01:27:24 INFO    [autograder.ai] LLM 调用 model=mimo-v2.5 耗时=59.98s tokens=2437
+2026-09-23 01:28:13 INFO    [autograder.ai] LLM 调用 model=mimo-v2.5 耗时=49.07s tokens=2264
+2026-09-23 01:28:13 INFO    [autograder.worker] 评阅完成 review=052e7d89-a68e-438d-b990-5e46681f043f items=4 矛盾=1
+2026-09-23 01:29:21 INFO    [autograder.api] AutoGrader API 启动，环境=development，LLM=mimo-v2.5
+2026-09-23 01:36:29 INFO    [autograder.api] AutoGrader API 启动，环境=development，LLM=mimo-v2.5
+2026-09-23 01:36:31 INFO    [autograder.worker] 解析完成 version=eacef9ee-0ff5-4320-b241-076391384c1e type=markdown blocks=7 chars=183
+2026-09-23 01:36:31 INFO    [autograder.worker] 开始评阅 review=60f4272c-c074-4f0b-80e6-d91528cd5644 rubric_version=f804cc6f-9331-429e-8e2b-d6ed2a7a44a6
+2026-09-23 01:37:03 INFO    [autograder.ai] LLM 调用 model=mimo-v2.5 耗时=32.22s tokens=1514
+2026-09-23 01:37:48 INFO    [autograder.ai] LLM 调用 model=mimo-v2.5 耗时=45.03s tokens=1949
+2026-09-23 01:38:30 INFO    [autograder.ai] LLM 调用 model=mimo-v2.5 耗时=42.36s tokens=1938
+2026-09-23 01:39:14 INFO    [autograder.ai] LLM 调用 model=mimo-v2.5 耗时=43.79s tokens=2110
+2026-09-23 01:39:14 INFO    [autograder.worker] 评阅完成 review=60f4272c-c074-4f0b-80e6-d91528cd5644 items=0 矛盾=1
+2026-09-23 01:39:31 INFO    [autograder.api] AutoGrader API 启动，环境=development，LLM=mimo-v2.5
+2026-09-23 01:39:33 INFO    [autograder.worker] 解析完成 version=e541932f-0ed5-444b-857f-69233f8177ba type=markdown blocks=7 chars=183
+2026-09-23 01:39:33 INFO    [autograder.worker] 开始评阅 review=6ecdece8-18a9-41df-a490-1675dd946281 rubric_version=d82e92f6-9d30-4a86-bb0b-d281359feff8
+2026-09-23 01:40:04 INFO    [autograder.ai] LLM 调用 model=mimo-v2.5 耗时=31.67s tokens=1649
+2026-09-23 01:40:41 INFO    [autograder.ai] LLM 调用 model=mimo-v2.5 耗时=36.65s tokens=1714
+2026-09-23 01:41:31 INFO    [autograder.ai] LLM 调用 model=mimo-v2.5 耗时=49.90s tokens=2058
+2026-09-23 01:42:08 INFO    [autograder.ai] LLM 调用 model=mimo-v2.5 耗时=36.65s tokens=1910
+2026-09-23 01:42:08 INFO    [autograder.worker] 评阅完成 review=6ecdece8-18a9-41df-a490-1675dd946281 items=0 矛盾=1

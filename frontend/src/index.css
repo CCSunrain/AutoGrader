@@ -633,3 +633,72 @@ mark {
   gap: 6px;
   flex-wrap: wrap;
 }
+
+/* ---------- toast（全局错误提示） ---------- */
+.toast-host {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 360px;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 8px 24px rgba(14, 28, 48, 0.18);
+  animation: toast-in 0.22s ease both;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.toast-error {
+  border-left: 3px solid var(--red);
+}
+
+.toast-icon {
+  color: var(--red);
+  font-size: 15px;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.toast-msg {
+  color: var(--ink);
+  flex: 1;
+  word-break: break-word;
+}
+
+.toast-close {
+  border: none;
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+
+.toast-close:hover {
+  color: var(--ink);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
